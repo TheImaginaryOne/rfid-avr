@@ -21,6 +21,11 @@ enum Register: uint8_t {
     CRC_RESULT_HIGH_REG = 0x21,
     CRC_RESULT_LOW_REG = 0x22,
     MODE_REG = 0x11,
+
+    TMODE_REG = 0x2a,
+    TPRESCALER_REG = 0x2b,
+    TRELOAD_HIGH_REG = 0x2c,
+    TRELOAD_LOW_REG = 0x2d,
 };
 
 enum Command: uint8_t {
@@ -50,7 +55,9 @@ bool rfid_select_card(uint8_t* uid);
 
 bool rfid_calculate_crc(uint8_t* buffer, uint8_t len, uint8_t* out);
 
-bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len);
+bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len, bool do_check);
+
+bool rfid_send(uint8_t command, uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len, bool do_check);
 
 bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid);
 

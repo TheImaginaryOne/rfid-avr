@@ -54,16 +54,19 @@ int main(void) {
         rfid_select_card(uid);
 
         uint8_t key_a[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-        rfid_authenticate(4, key_a, uid);
-
-        uint8_t resp[16];
-        rfid_read(4, resp);
-        char buf[2];
-        for (int i = 0; i< 16; i++) {
-            sprintf(buf, "%02X", resp[i]);
-            uart_send(2, buf);
+        if (rfid_authenticate(4, key_a, uid)) {
+            //uart_send(3, "a\r\n");
+            uint8_t resp[16];
+            bool x = rfid_read(4, resp);
+            if (x) {
+                char buf[2];
+                for (int i = 0; i< 16; i++) {
+                    sprintf(buf, "%02X", resp[i]);
+                    uart_send(2, buf);
+                }
+                uart_send(2, "\r\n");
+            }
         }
-        uart_send(2, "\r\n");
 
         PORTD |= (1 << PD2);
         _delay_loop_2(60000);
