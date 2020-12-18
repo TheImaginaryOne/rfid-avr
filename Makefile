@@ -17,7 +17,7 @@ $(objects): $(builddir)/%.o : %.cpp %.h
 	avr-gcc -g -Os -mmcu=$(mmcu) -I/usr/lib/avr/include -c $< -o $@
 
 createbuilddir:
-	mkdir ./build
+	mkdir -p ./build
 
 hello.h:
 
