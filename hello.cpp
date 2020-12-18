@@ -50,7 +50,11 @@ int main(void) {
     rfid_setup();
     while (1) {
         while (!rfid_check_card_present());
-        rfid_select_card();
+        uint8_t uid[5];
+        rfid_select_card(uid);
+
+        uint8_t key_a[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        rfid_authenticate(4, key_a, uid);
 
         PORTD |= (1 << PD2);
         _delay_loop_2(60000);

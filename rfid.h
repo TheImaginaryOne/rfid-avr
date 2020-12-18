@@ -17,6 +17,7 @@ enum Register: uint8_t {
     TX_ASK_REG = 0x15,
     COLL_REG = 0x0e, // anti-collision
     STATUS1_REG = 0x07, // contains CRC done bit
+    STATUS2_REG = 0x08,
     CRC_RESULT_HIGH_REG = 0x21,
     CRC_RESULT_LOW_REG = 0x22,
     MODE_REG = 0x11,
@@ -25,12 +26,14 @@ enum Register: uint8_t {
 enum Command: uint8_t {
     TRANSCEIVE = 0x0c,
     CALCULATE_CRC = 0x03,
+    MF_AUTHENT = 0x0e,
 };
 
 enum PiccCommand: uint8_t {
     REQA = 0x26,
     WUPA = 0x52,
     ANTI_COLLISION = 0x93, // send anti-collision select
+    AUTH_KEY_A = 0x60,
 };
 
 
@@ -42,10 +45,12 @@ void rfid_write_register(uint8_t address, uint8_t data);
 
 bool rfid_check_card_present();
 
-void rfid_select_card();
+bool rfid_select_card(uint8_t* uid);
 
 bool rfid_calculate_crc(uint8_t* buffer, uint8_t len, uint8_t* out);
 
 bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len);
+
+bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid);
 
 #endif

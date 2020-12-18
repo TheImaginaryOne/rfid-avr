@@ -108,8 +108,10 @@ bool rfid_calculate_crc(uint8_t* buffer, uint8_t len, uint8_t* out) {
     return false;
 }
 
-void rfid_select_card() {
+bool rfid_select_card(uint8_t* uid) {
     rfid_write_register(COLL_REG, 0x80);
+    // An anticollision command, with 32 valid bits.
+    // Ask the PICC to send the whole uid
     uint8_t commands[] = {ANTI_COLLISION, 32};
     bool x = rfid_transceive(0x80, commands, 2);
     // ComIrq
@@ -120,16 +122,19 @@ void rfid_select_card() {
         uint8_t request_data[9];
         request_data[0] = ANTI_COLLISION;
         request_data[1] = 7 * 16; // will transmit complete uid
+
         // Assume we have 5 bytes (4 byte + 1 BCC)
         for (int i = 0; i < 5; i++) {
+            // Place uid in the request buffer
             uint8_t response = rfid_read_register(FIFO_DATA_REG);
             request_data[2 + i] = response;
             // insert
         }
         // no anticollision looop for now
+        // Append crc
         bool success = rfid_calculate_crc(&request_data[0], 7, &request_data[7]);
         if (!success) {
-            return;
+            return false;
         }
         for (int i = 0; i < 9; i++) {
             sprintf(buf, "%02X", request_data[i]);
@@ -137,22 +142,52 @@ void rfid_select_card() {
         }
         uart_send(2, "\r\n");
 
+        // Send request (select)
         bool x = rfid_transceive(0x80, request_data, 9);
 
-        // if (rfid_read_register(FIFO_DATA_REG) == 0x08) {
-        //     buf[0] = 'y';
-        //     uart_send(2, buf);
-        // }
         if (x) {
             uint8_t response = rfid_read_register(FIFO_DATA_REG);
+            //sprintf(buf, "%02X", response);
+            //uart_send(2, buf);
+            //// insert
+            //uart_send(2, "\r\n");
             // Check if it is a SAK. NOTE! This is specific to Mifare.
             if (x & (1 << 3)) {
-
+                // copy
+                for (int i = 0; i < 5; i++) {
+                    uid[i] = request_data[i + 2];
+                }
+                return true;
             }
-            sprintf(buf, "%02X", response);
-            uart_send(2, buf);
-            // insert
-            uart_send(2, "\r\n");
         }
     }
+    return false;
+}
+
+bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid) {
+    uint8_t request[12];
+
+    // command
+    request[0] = AUTH_KEY_A;
+    request[1] = block_address;
+
+    for (int i = 0; i < 6; i++) {
+        request[2 + i] = key[i];
+    }
+
+    for (int i = 0; i < 4; i++) {
+        // last 4 bits of uid
+        request[8 + i] = uid[i];
+    }
+
+    rfid_transceive(MF_AUTHENT, request, 12);
+
+    for (int i = 0; i < 1000; i++) {
+        // Check if Crypto1 flag is on, meaning authentication success
+        if (STATUS2_REG & (1 << 3)) {
+            uart_send(3, "y\r\n");
+            return true;
+        }
+    }
+    return false;
 }
