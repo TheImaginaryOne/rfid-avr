@@ -56,6 +56,15 @@ int main(void) {
         uint8_t key_a[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         rfid_authenticate(4, key_a, uid);
 
+        uint8_t resp[16];
+        rfid_read(4, resp);
+        char buf[2];
+        for (int i = 0; i< 16; i++) {
+            sprintf(buf, "%02X", resp[i]);
+            uart_send(2, buf);
+        }
+        uart_send(2, "\r\n");
+
         PORTD |= (1 << PD2);
         _delay_loop_2(60000);
         _delay_loop_2(60000);

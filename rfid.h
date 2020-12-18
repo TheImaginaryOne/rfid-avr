@@ -34,6 +34,7 @@ enum PiccCommand: uint8_t {
     WUPA = 0x52,
     ANTI_COLLISION = 0x93, // send anti-collision select
     AUTH_KEY_A = 0x60,
+    READ_DATA = 0x30,
 };
 
 
@@ -49,8 +50,10 @@ bool rfid_select_card(uint8_t* uid);
 
 bool rfid_calculate_crc(uint8_t* buffer, uint8_t len, uint8_t* out);
 
-bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len);
+bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len);
 
 bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid);
+
+bool rfid_read(uint8_t block_address, uint8_t* output);
 
 #endif
