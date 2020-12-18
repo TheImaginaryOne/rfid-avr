@@ -9,5 +9,6 @@
 const uint16_t BAUD_RATE_REGISTER = (F_CPU / 16 / BAUD) - 1;
 
 void uart_setup() ;
-void uart_send(uint8_t len, char str[]) ;
+void uart_send(uint8_t len, const char* str);
+void uart_send_hex(uint8_t* in, uint8_t len);
 #endif
