@@ -65,6 +65,9 @@ int main(void) {
                     uart_send(2, buf);
                 }
                 uart_send(2, "\r\n");
+
+                rfid_stop_crypto();
+                rfid_halt();
             }
         }
 

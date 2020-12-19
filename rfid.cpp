@@ -237,3 +237,21 @@ bool rfid_read(uint8_t block_address, uint8_t* output) {
     // TODO check crc of response
     return rfid_transceive(0x80, request, 4, output, 18, true);
 }
+
+void rfid_stop_crypto() {
+    // todo
+    rfid_write_register(STATUS2_REG, 0);
+}
+
+bool rfid_halt() {
+    uint8_t request[4];
+    request[0] = HALT;
+    request[1] = 0;
+
+    // append crc
+    rfid_calculate_crc(request, 2, &request[2]);
+
+    uint8_t response[3];
+    // If there is a response, it is not ok
+    return !rfid_transceive(0x80, request, 4, response, 3, true);
+}
