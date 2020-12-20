@@ -8,6 +8,7 @@
 #include "rfid.h"
 #include "spi.h"
 #include "uart.h"
+#include "lcd.h"
 
 volatile uint8_t adc_input = 2;
 uint8_t bob = 0;
@@ -36,18 +37,34 @@ int main(void) {
     // MISO
     DDRB &= ~(1 << PB4);
     // pin 2
-    DDRD |= (1 << PD2);
+    // Enable PD0 - PD7
+    DDRD |= 0b11111111;
 
     // interrupts ON
     uart_setup();
     spi_setup();
-    //sei();
-
-    PORTD |= (1 << PD2);
-    _delay_loop_2(60000);
-    _delay_loop_2(60000);
-    PORTD &= ~(1 << PD2);
+//    //sei();
+//
+//    // PORTD |= (1 << PD2);
+//    // _delay_loop_2(60000);
+//    // _delay_loop_2(60000);
+//    // PORTD &= ~(1 << PD2);
     rfid_setup();
+
+    Lcd lcd;
+    lcd.rs_pin = PD6;
+    lcd.enable_pin = PD7;
+    lcd.data_pin_offset = PD2;
+    lcd.rs_port = &PORTD;
+    lcd.enable_port = &PORTD;
+    lcd.data_port = &PORTD;
+    lcd_init(&lcd);
+    
+    lcd_write_command(&lcd, 0x06);
+    char input[] = "NotAT HOP Card";
+    lcd_write_text(&lcd, input, 14);
+
+
     while (1) {
         while (!rfid_check_card_present());
         uint8_t uid[5];
@@ -69,6 +86,13 @@ int main(void) {
                 uint8_t amount = resp[15];
                 amount += 1;
 
+                char amount_text[] = "Amount ";
+                lcd_cursor_to(&lcd, 1, 0);
+                lcd_write_text(&lcd, amount_text, 7);
+                char text[4];
+                sprintf(text, "%03u", amount);
+                lcd_write_text(&lcd, text, 3);
+
                 uint8_t input[16] = {};
                 input[15] = amount;
                 bool x = rfid_write(4, input);
@@ -78,9 +102,9 @@ int main(void) {
             }
         }
 
-        PORTD |= (1 << PD2);
-        _delay_loop_2(60000);
-        _delay_loop_2(60000);
-        PORTD &= ~(1 << PD2);
+        // PORTD |= (1 << PD2);
+        // _delay_loop_2(60000);
+        // _delay_loop_2(60000);
+        // PORTD &= ~(1 << PD2);
     }
 }

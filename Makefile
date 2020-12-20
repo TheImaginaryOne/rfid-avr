@@ -1,4 +1,4 @@
-filenames=hello rfid spi uart
+filenames=hello rfid spi uart lcd
 objects=$(patsubst %, $(builddir)/%.o, $(filenames))
 builddir=build
 elf=$(builddir)/hello.elf
