@@ -50,7 +50,7 @@ void rfid_setup() {
 
 bool rfid_check_card_present() {
     uint8_t command[] = {WUPA};
-    bool result = rfid_transceive(0x80 | 0x07, command, 1, nullptr, 0, false);
+    bool result = rfid_transceive(0x80 | 0x07, command, 1, nullptr, 0, false, false);
 
     return result;
 }
@@ -61,9 +61,10 @@ bool rfid_transceive(
         uint8_t len,
         uint8_t* response,
         uint8_t response_len,
+        bool add_crc,
         bool do_check
         ) {
-    return rfid_send(TRANSCEIVE, bit_framing, buffer, len, response, response_len, do_check);
+    return rfid_send(TRANSCEIVE, bit_framing, buffer, len, response, response_len, add_crc, do_check);
 }
 bool rfid_send(
         uint8_t command,
@@ -72,17 +73,30 @@ bool rfid_send(
         uint8_t len,
         uint8_t* response,
         uint8_t response_len,
+        bool add_crc,
         bool do_check
         ) {
-    rfid_write_register(COMMAND_REG, 0x00);
+    // clear command
+    uint8_t crc[2];
+    if (add_crc) {
+        // Add 2 byte CRC
+        if (!rfid_calculate_crc(buffer, len, crc)) {
+            return false;
+        }
+    }
+
     rfid_write_register(TX_CONTROL_REG, 0x83);
         
     rfid_write_register(COM_IRQ_REG, 0x7f); // clear
 
     rfid_write_register(FIFO_LEVEL_REG, 0x80); // clear
-    
+
     rfid_write_register_multiple(FIFO_DATA_REG, buffer, len);
-    
+
+    if (add_crc) {
+        rfid_write_register_multiple(FIFO_DATA_REG, crc, 2);
+    }
+        
     // start transceive
     rfid_write_register(COMMAND_REG, command);
     rfid_write_register(BIT_FRAMING_REG, bit_framing);
@@ -154,7 +168,7 @@ bool rfid_select_card(uint8_t* uid) {
     // Buffer to be used for subsequent requests
     uint8_t request_data[9];
 
-    bool x = rfid_transceive(0x80, commands, 2, &request_data[2], 5, false);
+    bool x = rfid_transceive(0x80, commands, 2, &request_data[2], 5, false, false);
     if (!x) {
         return false;
     }
@@ -175,7 +189,7 @@ bool rfid_select_card(uint8_t* uid) {
 
         // Send request (select)
         uint8_t response;
-        bool x = rfid_transceive(0x80, request_data, 9, &response, 1, false);
+        bool x = rfid_transceive(0x80, request_data, 9, &response, 1, false, false);
 
         if (x) {
             //// insert
@@ -213,7 +227,7 @@ bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid) {
     }
 
     uint8_t response[3];
-    if (!rfid_send(MF_AUTHENT, 0x80, request, 12, response, 3, false)) {
+    if (!rfid_send(MF_AUTHENT, 0x80, request, 12, response, 3, false, false)) {
         rfid_write_register(STATUS2_REG, 0);
         return false;
     }
@@ -227,15 +241,25 @@ bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid) {
 }
 
 bool rfid_read(uint8_t block_address, uint8_t* output) {
-    uint8_t request[4];
+    uint8_t request[2];
     request[0] = READ_DATA;
     request[1] = block_address;
 
-    // append crc
-    rfid_calculate_crc(request, 2, &request[2]);
-
     // TODO check crc of response
-    return rfid_transceive(0x80, request, 4, output, 18, true);
+    return rfid_transceive(0x80, request, 2, output, 18, true, true);
+}
+
+bool rfid_write(uint8_t block_address, uint8_t* input) {
+    uint8_t request[2];
+    request[0] = WRITE_DATA;
+    request[1] = block_address;
+
+    // First step: set WRITE command
+    uint8_t response[3];
+    if (!rfid_transceive(0x80, request, 2, response, 3, true, true)) {
+        return false;
+    }
+    return rfid_transceive(0x80, input, 16, response, 3, true, true);
 }
 
 void rfid_stop_crypto() {
@@ -244,14 +268,11 @@ void rfid_stop_crypto() {
 }
 
 bool rfid_halt() {
-    uint8_t request[4];
+    uint8_t request[2];
     request[0] = HALT;
     request[1] = 0;
 
-    // append crc
-    rfid_calculate_crc(request, 2, &request[2]);
-
     uint8_t response[3];
     // If there is a response, it is not ok
-    return !rfid_transceive(0x80, request, 4, response, 3, true);
+    return !rfid_transceive(0x80, request, 2, response, 3, false, true);
 }

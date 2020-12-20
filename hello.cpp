@@ -55,16 +55,23 @@ int main(void) {
 
         uint8_t key_a[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         if (rfid_authenticate(4, key_a, uid)) {
-            //uart_send(3, "a\r\n");
             uint8_t resp[16];
             bool x = rfid_read(4, resp);
             if (x) {
+                //uart_send(3, "b\r\n");
                 char buf[2];
                 for (int i = 0; i< 16; i++) {
                     sprintf(buf, "%02X", resp[i]);
                     uart_send(2, buf);
                 }
                 uart_send(2, "\r\n");
+
+                uint8_t amount = resp[15];
+                amount += 1;
+
+                uint8_t input[16] = {};
+                input[15] = amount;
+                bool x = rfid_write(4, input);
 
                 rfid_stop_crypto();
                 rfid_halt();

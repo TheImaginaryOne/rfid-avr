@@ -40,6 +40,7 @@ enum PiccCommand: uint8_t {
     ANTI_COLLISION = 0x93, // send anti-collision select
     AUTH_KEY_A = 0x60,
     READ_DATA = 0x30,
+    WRITE_DATA = 0xa0,
     HALT = 0x50,
 };
 
@@ -56,13 +57,32 @@ bool rfid_select_card(uint8_t* uid);
 
 bool rfid_calculate_crc(uint8_t* buffer, uint8_t len, uint8_t* out);
 
-bool rfid_transceive(uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len, bool do_check);
+bool rfid_transceive(
+        uint8_t bit_framing, 
+        uint8_t* buffer,
+        uint8_t len,
+        uint8_t* response,
+        uint8_t response_len,
+        bool add_crc,
+        bool do_check
+        );
 
-bool rfid_send(uint8_t command, uint8_t bit_framing, uint8_t* buffer, uint8_t len, uint8_t* response, uint8_t response_len, bool do_check);
+bool rfid_send(
+        uint8_t command,
+        uint8_t bit_framing,
+        uint8_t* buffer,
+        uint8_t len,
+        uint8_t* response,
+        uint8_t response_len,
+        bool add_crc,
+        bool do_check
+        );
 
 bool rfid_authenticate(uint8_t block_address, uint8_t* key, uint8_t* uid);
 
 bool rfid_read(uint8_t block_address, uint8_t* output);
+
+bool rfid_write(uint8_t block_address, uint8_t* input);
 
 void rfid_stop_crypto();
 
